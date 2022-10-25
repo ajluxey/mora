@@ -19,38 +19,72 @@ void print_vector_elements(uint8_t *vector) {
 }
 
 
-void test_SPL() {
-//    bytes_vector a = { 0xf2, 0x52, 0xb7, 0x16, 0x8d, 0x7d, 0x7f, 0x71 };
-    bytes_vector a = {};
-    half_bytes_vector b;
+int test_LPS() {
+    bytes_vector a = { 0xf2, 0x52, 0xb7, 0x16, 0x8d, 0x7d, 0x7f, 0x71 };
+    half_bytes_vector expected = {0x2, 0xc, 0x5, 0xb, 0x8, 0x3, 0x6, 0x2, 0x9, 0x3, 0x9, 0xc, 0xa, 0x2, 0xb, 0xb};
+    half_bytes_vector result;
 
-    split_into_half_bytes(a, b);
-    print_16vector(b);
+    split_into_half_bytes(a, result);
+    print_16vector(result);
 
-    S(b);
-    std::cout << "AFTER S\nb = ";
-    print_16vector(b);
+    S(result);
+//    std::cout << "AFTER S\nb = ";
+//    print_16vector(result);
 
-    P(b);
-    std::cout << "AFTER P\nb = ";
-    print_16vector(b);
+    P(result);
+//    std::cout << "AFTER P\nb = ";
+//    print_16vector(result);
 
-    L(b);
-    std::cout << "AFTER L\nb = ";
-    print_16vector(b);
+    L(result);
+//    std::cout << "AFTER L\nb = ";
+//    print_16vector(result);
+
+    for(int i = 0; i < HALF_BYTES_IN_BLOCK; i++) {
+        if (result[i] != expected[i]) {
+            printf("FAIL!");
+            return -1;
+        }
+    }
+    printf("CORR!");
+    return 1;
 }
 
 
-void test_unit() {
-    uint16_t t1 = 0xa368;
-    uint16_t t2 = 0x18ba;
-// 	printf("%x\n", l_part_result);
-    printf("%x\n", l_part(t2));
+int test_L_part() {
+    uint16_t r1 = 0xa368;
+    uint16_t r2 = 0x18ba;
+    uint16_t e1 = 0x2c5b;
+    uint16_t e2 = 0x8362;
+    if (l_part(r1) == e1 && l_part(r2) == e2) {
+        printf("CORR!");
+        return 1;
+    } else {
+        printf("FAIL!");
+        return -1;
+    }
+}
+
+
+int test_xor() {
+    half_bytes_vector a = {0x2, 0xf, 0x0, 0x3, 0x8, 0xf, 0x3, 0xa, 0xf, 0x4, 0xb, 0x8, 0x9, 0x5, 0xd, 0xf};
+    half_bytes_vector b = {0x0, 0x6, 0xf, 0xb, 0xc, 0x6, 0xa, 0x6, 0x9, 0xc, 0x3, 0xf, 0x9, 0x4, 0xc, 0xc};
+    half_bytes_vector result;
+    half_bytes_vector expected = {0x2, 0x9, 0xf, 0x8, 0x4, 0x9, 0x9, 0xc, 0x6, 0x8, 0x8, 0x7, 0x0, 0x1, 0x1, 0x3};
+    bytes_xor(a, b, result);
+    for (int i = 0; i < HALF_BYTES_IN_BLOCK; i++) {
+        if (result[i] != expected[i]) {
+            printf("FAIL!");
+            return -1;
+        }
+    }
+    printf("CORR!");
+    return 1;
 }
 
 
 int main() {
-    test_SPL();
-    // test_unit();
+    test_LPS();
+//    test_L_part();
+//    test_xor();
     return 0;
 }
