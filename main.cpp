@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string.h>
 #define BYTES_IN_BLOCK 8
 #define HALF_BYTES_IN_BLOCK 16
 
@@ -27,6 +28,23 @@ static const uint16_t A[HALF_BYTES_IN_BLOCK] = {
 };
 
 
+// byte utils
+uint16_t half_bytes_to_16bit(uint8_t *original) {
+    uint16_t result = 0;
+    for (int i = 0; i < 4; i++) {
+        result = (result << 4) + original[i];
+    }
+    return result;
+}
+
+
+uint16_t get_ith_bit(uint16_t x, size_t i)
+{
+    return (x & (1 << (16 - i - 1))) >> (16 - i - 1);
+}
+
+
+// bytes operation
 void bytes_xor(const uint8_t *first, const uint8_t *second, uint8_t *result) {
     int i;
     for(i = 0; i < HALF_BYTES_IN_BLOCK; i++) {
@@ -35,6 +53,25 @@ void bytes_xor(const uint8_t *first, const uint8_t *second, uint8_t *result) {
 }
 
 
+// bytes array operations
+void split_into_half_bytes(const uint8_t *bytes, uint8_t *result) {
+    int i;
+    for (i = 0; i < BYTES_IN_BLOCK; i++) {
+        result[i * 2] = bytes[i] >> 4;
+        result[i * 2 + 1] = bytes[i] & 0xf;
+    }
+}
+
+
+void join_half_bytes(const uint8_t *half_bytes, uint8_t *result) {
+    int i;
+    for (i = 0; i < HALF_BYTES_IN_BLOCK; i++) {
+        result[i] = half_bytes[i * 2] * 0xf + half_bytes[i * 2 + 1];
+    }
+}
+
+
+// mora SPL
 void S(uint8_t *original) {       // Based on Pi, S-box
     int i;
     half_bytes_vector result;
@@ -55,16 +92,10 @@ void P(uint8_t *original) {  // Based on Tau (half bytes shake)
 }
 
 
-uint16_t get_ith_bit(uint16_t x, size_t i)
-{
-  return x & (1 << (16 - i - 1));
-}
-
-
 uint16_t l_part(uint16_t original) {
     uint16_t result = 0;
     for (size_t i = 0; i < 16; i++) {
-        if (get_ith_bit(original, i) >= 1) {
+        if (get_ith_bit(original, i) == 1) {
             result ^= A[i];
         }
     }
@@ -75,59 +106,21 @@ uint16_t l_part(uint16_t original) {
 void L(uint8_t *original) {   // Linear transformation (matrix_multiply)
     half_bytes_vector result = {0};
     uint16_t bits16 = 0;
-    int x, y;
     int i, j;
-    for (x = 0; x < 4; x++) {
-        for (y = 0; y < 4; y++) {
-            bits16 = (bits16 << 4) + original[4 * x + y]; // concat [0xd, 0xe, 0xa, 0xd] => 0xdead = 16 bit
-        }
+    for (i = 0; i < 4; i++) {
+        uint8_t *start_point = original + i * 4 * sizeof(uint8_t);
+
+        bits16 = half_bytes_to_16bit(start_point);
         printf("%x\n", bits16);
 
-        // новое
         uint16_t part_result;
         part_result = l_part(bits16);
-        for (i = 0; i < 4; i++) {
-            result[4 * x + i] = (part_result & (0xF << (4 * (4 - i -1)))) >> (4 * (4 - i - 1));
+        printf("%x\n", part_result);
+        for (j = 0; j < 4; j++) {
+            result[4 * i + j] = (part_result & (0xF << (4 * (4 - j -1)))) >> (4 * (4 - j - 1));
         }
-//        result[4 * x] = (part_result & 0xF000) >> 12;
-//        result[4 * x + 1] = (part_result & 0xF00) >> 8;
-//        result[4 * x + 2] = (part_result & 0xF0) >> 4;
-//        result[4 * x + 3] = (part_result & 0xF);
-//        for (int q = 0; q < 4; q++) printf("result[4 * x + %d] = %x\n", q, result[4 * x + q]);
-
-
-// прошлое
-//        uint8_t current_bit, A_el;
-//        for (i = 0; i < 16; i++) {                                      // i = col of A
-//            uint8_t result_bit = 0;
-//            for (j = 0; j < 16; j++) {                                  // j = row of A and index of bit in vector
-////                A_el = (uint8_t)(A[j] << i) >> 15;
-////                current_bit = (uint8_t)(bits16 << j) >> 15;
-//                A_el = (A[j] & (1 << (15 - i))) >> (15 - i);            // get bit by mask x_bit = (byte & (1 << x)) >> x, x = 0..7
-//                current_bit = (bits16 & (1 << (15 - j))) >> (15 - j);
-//                result_bit = result_bit ^ current_bit ^ A_el;
-//            }
-//            result[4 * x + i / 4] = result[4 * x + i / 4] * 2 + result_bit;
-//        }
     }
     memcpy(original, result, HALF_BYTES_IN_BLOCK);
-}
-
-
-void split_into_half_bytes(const uint8_t *bytes, uint8_t *result) {
-    int i;
-    for (i = 0; i < BYTES_IN_BLOCK; i++) {
-        result[i * 2] = bytes[i] >> 4;
-        result[i * 2 + 1] = bytes[i] & 0xf;
-    }
-}
-
-
-void join_half_bytes(const uint8_t *half_bytes, uint8_t *result) {
-    int i;
-    for (i = 0; i < HALF_BYTES_IN_BLOCK; i++) {
-        result[i] = half_bytes[i * 2] * 0xf + half_bytes[i * 2 + 1];
-    }
 }
 
 
@@ -168,8 +161,17 @@ void test_SPL() {
 }
 
 
+void test_unit() {
+    uint16_t t1 = 0xa368;
+    uint16_t t2 = 0x18ba;
+// 	printf("%x\n", l_part_result);
+    printf("%x\n", l_part(t2));
+}
+
+
 int main() {
     test_SPL();
+    // test_unit();
     return 0;
 }
 
