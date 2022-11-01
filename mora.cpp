@@ -54,22 +54,19 @@ void G(uint8_t *hash, uint8_t *block, uint8_t *N) {
 
 
 typedef struct mora_context {
-    half_bytes_vector N;
+    half_bytes_vector N;                // количество обработанных бит
     half_bytes_vector sigma;
-    half_bytes_vector current_block;
-    half_bytes_vector current_hash;
+    half_bytes_vector current_block;    // текущий блок на каждой итерации G
+    half_bytes_vector current_hash;     // хэш - изменяемый в G с помощью ключей и передаваемый далее
 } mora_context;
 
 
 mora_context init_context() {
     mora_context context;
-    half_bytes_vector IV = {0};
-    half_bytes_vector N = {0};
-    half_bytes_vector sigma = {0};
 
-    memcpy(context.current_hash, IV, HALF_BYTES_IN_BLOCK);
-    memcpy(context.N, N, HALF_BYTES_IN_BLOCK);
-    memcpy(context.sigma, sigma, HALF_BYTES_IN_BLOCK);
+    memset(context.current_hash, 0x0, HALF_BYTES_IN_BLOCK);
+    memset(context.N, 0x0, HALF_BYTES_IN_BLOCK);
+    memset(context.sigma, 0x0, HALF_BYTES_IN_BLOCK);
 
     return context;
 }
@@ -92,7 +89,7 @@ void mora(uint8_t *IV, uint8_t *original_message, size_t current_length) {
         size_t shift;
         shift = current_length - BYTES_IN_BLOCK;
 
-        split_into_half_bytes(original_message + shift, context.current_block); // сплитим и записываем байты! с original_message[shift] до original_message[shift + 8]
+        split_into_half_bytes(original_message + shift, context.current_block); // сплитим !байты! и записываем с original_message[shift] до original_message[shift + 8] в массив полубайт
 
         G(context.current_hash, context.current_block, context.N);
         adding_in_Z64(context.N, ADDED_TO_N, context.N);
@@ -101,21 +98,18 @@ void mora(uint8_t *IV, uint8_t *original_message, size_t current_length) {
         current_length -= BYTES_IN_BLOCK;
     }
     // last part
-    if (current_length == 0) {
-        join_half_bytes(context.current_hash, IV);
-        return;
-    }
-    half_bytes_vector last_added_to_N;
-    bit_length_of_short_message_in_half_bytes_vector((uint8_t) current_length, last_added_to_N);
+    half_bytes_vector last_added_to_N;      // битовая длина оставшегося блока
+    bit_length_of_short_message_in_half_bytes_vector(current_length, last_added_to_N);
     padding_short_block(original_message, current_length, context.current_block);
 
     G(context.current_hash, context.current_block, context.N);
-    adding_in_Z64(context.N, last_added_to_N, context.N);
+    adding_in_Z64(context.N, last_added_to_N, context.N);           // N = длина сообщения в битах
     adding_in_Z64(context.sigma, context.current_block, context.sigma);
 
-    memcpy(context.current_block, context.current_hash, HALF_BYTES_IN_BLOCK);
-    memset(context.N, 0x0, HALF_BYTES_IN_BLOCK);
-    G(context.current_hash, context.current_block, context.N);
+    // mixing length of original message
+    memcpy(context.current_block, context.N, HALF_BYTES_IN_BLOCK);
+    memset(context.N, 0x0, HALF_BYTES_IN_BLOCK);                // N теперь содержит нулевой вектор
+    G(context.current_hash, context.current_block, context.N); // context.N = {0}; context.current_block = length of message in bit (in half bytes vector)
 
     G(context.current_hash, context.sigma, context.N);
 

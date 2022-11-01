@@ -16,6 +16,6 @@ void L(uint8_t *original);
 uint16_t l_part(uint16_t original);
 void LPS(uint8_t *original);
 void LPSX(uint8_t *first, uint8_t *second, uint8_t *result);
-void bit_length_of_short_message_in_half_bytes_vector(uint8_t count_of_remaining_bytes , uint8_t *result);
+void bit_length_of_short_message_in_half_bytes_vector(size_t bytes_count, uint8_t *result);
 
 #endif //MORA_BYTE_UTILS_H
