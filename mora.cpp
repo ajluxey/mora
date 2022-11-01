@@ -24,6 +24,7 @@ void next_K(uint8_t *current_K, size_t current_iteration) {
 }
 
 
+// При выполнении E изменяется K и hash
 void E(uint8_t *K, uint8_t* block, uint8_t *hash) {
     X(K, block, hash);
     for(size_t i = 0; i < 9; i++) {
@@ -36,7 +37,7 @@ void E(uint8_t *K, uint8_t* block, uint8_t *hash) {
 }
 
 
-
+// При выполнении G из изначальных переменных изменяется лишь hash
 void G(uint8_t *hash, uint8_t *block, uint8_t *N) {
     half_bytes_vector K = {0};
     half_bytes_vector start_hash;
@@ -52,9 +53,67 @@ void G(uint8_t *hash, uint8_t *block, uint8_t *N) {
 }
 
 
+typedef struct mora_context {
+    half_bytes_vector N;
+    half_bytes_vector sigma;
+    half_bytes_vector current_block;
+    half_bytes_vector current_hash;
+} mora_context;
+
+
+mora_context init_context() {
+    mora_context context;
+    half_bytes_vector IV = {0};
+    half_bytes_vector N = {0};
+    half_bytes_vector sigma = {0};
+
+    memcpy(context.current_hash, IV, HALF_BYTES_IN_BLOCK);
+    memcpy(context.N, N, HALF_BYTES_IN_BLOCK);
+    memcpy(context.sigma, sigma, HALF_BYTES_IN_BLOCK);
+
+    return context;
+}
+
+
+void padding_short_block(uint8_t *short_message, size_t length, uint8_t *result) {
+    memset(result, 0x00, BYTES_IN_BLOCK);
+    memcpy(result + BYTES_IN_BLOCK - length, short_message, length);
+    result[BYTES_IN_BLOCK - length - 1] = 0x1;
+}
+
+
+void mora2(uint8_t *IV, uint8_t *original_message, size_t current_length) {
+    // first part
+    mora_context context = init_context();
+    split_into_half_bytes(IV, context.current_hash);
+
+    // second part
+    while (current_length >= BYTES_IN_BLOCK) {
+        size_t shift;
+        shift = current_length - BYTES_IN_BLOCK;
+
+        split_into_half_bytes(original_message + shift, context.current_block); // сплитим и записываем байты! с original_message[shift] до original_message[shift + 8]
+
+        G(context.current_hash, context.current_block, context.N);
+        adding_in_Z64(context.N, ADDED_TO_N, context.N);
+        adding_in_Z64(context.sigma, context.current_block, context.sigma);
+
+        current_length -= shift;
+    }
+    // last part
+//    if (current_length == 0) {
+//        return; // hash
+//    }
+//    padding_short_block(original_message, current_length, context.current_block);
+
+}
+
+
+
 // original message - bytes array; NOT HALF BYTES
 void mora(uint8_t *IV, uint8_t *original_message, size_t current_length) {
     half_bytes_vector N = {0};
+    half_bytes_vector sigma = {0};
     half_bytes_vector hash;
 
     split_into_half_bytes(IV, hash);
