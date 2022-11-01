@@ -106,3 +106,11 @@ void LPSX(uint8_t *first, uint8_t *second, uint8_t *result) {
     X(first, second, result);
     LPS(result);
 }
+
+
+void bit_length_of_short_message_in_half_bytes_vector(uint8_t count_of_remaining_bytes , uint8_t *result) {
+    // length < 0xff
+    memset(result, 0x0, HALF_BYTES_IN_BLOCK);
+    result[HALF_BYTES_IN_BLOCK - 1] = (count_of_remaining_bytes * 8) & 0xf;
+    result[HALF_BYTES_IN_BLOCK - 2] = (count_of_remaining_bytes * 8) >> 4;
+}
