@@ -30,8 +30,8 @@ void E(uint8_t *K, uint8_t* block, uint8_t *hash) {
     for(size_t i = 0; i < 9; i++) {
         LPS(hash);
         next_K(K, i);
-        printf("K%d = ", i + 2);
-        print_vector(K);
+//        printf("K%d = ", i + 2);
+//        print_vector(K);
         X(hash, K, hash);
     }
 }
@@ -44,8 +44,8 @@ void G(uint8_t *hash, uint8_t *block, uint8_t *N) {
     memcpy(start_hash, hash, HALF_BYTES_IN_BLOCK);
 
     LPSX(hash, N, K);
-    printf("K1 = ");
-    print_vector(K);
+//    printf("K1 = ");
+//    print_vector(K);
     E(K, block, hash);
 
     X(hash, start_hash, hash);
@@ -98,7 +98,7 @@ void mora(uint8_t *IV, uint8_t *original_message, size_t current_length) {
         adding_in_Z64(context.N, ADDED_TO_N, context.N);
         adding_in_Z64(context.sigma, context.current_block, context.sigma);
 
-        current_length -= shift;
+        current_length -= BYTES_IN_BLOCK;
     }
     // last part
     if (current_length == 0) {
