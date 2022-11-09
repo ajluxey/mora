@@ -28,7 +28,27 @@ void mora_run() {
 }
 
 
+void sponge_hash_run() {
+    bytes_vector result = {0};
+//    uint8_t message[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF};
+    uint8_t message[] = {0x87, 0x12, 0xf3, 0x36, 0x52, 0x21, 0x35, 0x59};
+    sponge_hash(message, 8, result);
+    print_8vector(result);
+}
+
+
+void sponge_MAC_run() {
+    bytes_vector result = {0};
+    uint8_t message[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF};
+    uint8_t key[] = {0x87, 0x12, 0xf3, 0x36, 0x52, 0x21, 0x35, 0x59};
+    sponge_MAC(message, 8, key, 8, result);
+    print_8vector(result);
+}
+
+
 int main() {
-    mora_run();
+//    mora_run();
+//    sponge_hash_run();
+    sponge_MAC_run();
     return 0;
 }
