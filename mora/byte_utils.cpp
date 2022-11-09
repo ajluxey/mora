@@ -26,8 +26,8 @@ void split_into_half_bytes(const uint8_t *bytes, uint8_t *result) {
 
 void join_half_bytes(const uint8_t *half_bytes, uint8_t *result) {
     int i;
-    for (i = 0; i < HALF_BYTES_IN_BLOCK; i++) {
-        result[i] = half_bytes[i * 2] * 0xf + half_bytes[i * 2 + 1];
+    for (i = 0; i < BYTES_IN_BLOCK; i++) {
+        result[i] = half_bytes[i * 2] * 0x10 + half_bytes[i * 2 + 1];
     }
 }
 

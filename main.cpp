@@ -1,7 +1,8 @@
 #include <iostream>
-#include "constants.h"
-#include "mora.h"
-#include "test_of_parts.h"
+#include "mora/constants.h"
+#include "mora/mora.h"
+#include "mora/test_of_parts.h"
+#include "sponge/sponge_crypto.h"
 
 void print_8vector(uint8_t *vector) {
     int i;
@@ -10,15 +11,24 @@ void print_8vector(uint8_t *vector) {
     std::cout << "\n";
 }
 
-int main() {
-//    test_LPS();
-//    test_L_part();
-//    test_xor();
-//    test_adding_in_Z64();
-//    test_mora();
+
+void base_tests() {
+    test_LPS();
+    test_L_part();
+    test_xor();
+    test_adding_in_Z64();
+}
+
+
+void mora_run() {
     bytes_vector IV = {0};
     uint8_t message[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF};
     mora(IV, message, 8);
     print_8vector(IV);
+}
+
+
+int main() {
+    mora_run();
     return 0;
 }

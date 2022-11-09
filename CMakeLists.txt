@@ -3,4 +3,4 @@ project(mora)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(mora main.cpp constants.h byte_utils.cpp byte_utils.h mora.cpp mora.h test_of_parts.cpp test_of_parts.h)
+add_executable(mora main.cpp mora/constants.h mora/byte_utils.cpp mora/byte_utils.h mora/mora.cpp mora/mora.h mora/test_of_parts.cpp mora/test_of_parts.h)
