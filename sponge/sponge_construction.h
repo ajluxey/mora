@@ -7,23 +7,21 @@
 
 #include "../mora/byte_utils.h"
 #include "../mora/mora.h"
-
-#define BYTES_STATE_SIZE 8
-#define BYTES_R_SIZE 1
-#define STATE_SIZE BYTES_STATE_SIZE * 2
-#define R_SIZE BYTES_R_SIZE * 2
-
-#define C_SIZE STATE_SIZE - R_SIZE
+#include <cmath>
 
 
-typedef struct half_bytes_sponge {
-    half_bytes_vector state;
-    uint8_t *r_block = state;
-    uint8_t *c_block = state + R_SIZE;
-} half_bytes_sponge;
+#define STATE_BYTE_SIZE 8
+#define STATE_BIT_SIZE 64
+#define R_BIT_SIZE 32
+#define INTEGER_QUANTITY_BYTES_FOR_R_BLOCK (int) ceil(R_BIT_SIZE/8)
 
+typedef struct sponge_struct {
+    uint64_t state;
+    uint8_t r_bit_size = R_BIT_SIZE;
+    uint8_t state_bit_size = STATE_BIT_SIZE;
+} sponge_struct;
 
-void absorbing(half_bytes_sponge *sponge, uint8_t *block);
-void squeezing(half_bytes_sponge *sponge, uint8_t *result_block);
+void absorbing(sponge_struct *sponge, uint64_t *block);
+uint64_t squeezing(sponge_struct *sponge);
 
 #endif //MORA_SPONGE_CONSTRUCTION_H
