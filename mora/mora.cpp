@@ -2,6 +2,7 @@
 #include <iostream>
 #include "mora.h"
 
+#define CONSTANTS_COUNT 9
 
 void print_vector(uint8_t *vector) {
     int i;
@@ -27,11 +28,9 @@ void next_K(uint8_t *current_K, size_t current_iteration) {
 // При выполнении E изменяется K и hash
 void E(uint8_t *K, uint8_t* block, uint8_t *hash) {
     X(K, block, hash);
-    for(size_t i = 0; i < 9; i++) {
+    for(size_t i = 0; i < CONSTANTS_COUNT; i++) {
         LPS(hash);
         next_K(K, i);
-//        printf("K%d = ", i + 2);
-//        print_vector(K);
         X(hash, K, hash);
     }
 }
@@ -44,8 +43,6 @@ void G(uint8_t *hash, uint8_t *block, uint8_t *N) {
     memcpy(start_hash, hash, HALF_BYTES_IN_BLOCK);
 
     LPSX(hash, N, K);
-//    printf("K1 = ");
-//    print_vector(K);
     E(K, block, hash);
 
     X(hash, start_hash, hash);
