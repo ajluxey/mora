@@ -48,7 +48,7 @@ void sponge_MAC_run() {
 
 int main() {
 //    mora_run();
-//    sponge_hash_run();
-    sponge_MAC_run();
+    sponge_hash_run();
+//    sponge_MAC_run();
     return 0;
 }

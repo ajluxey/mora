@@ -2,7 +2,7 @@
 
 
 void split_into_half_bytes_sponge(const uint8_t *bytes, uint8_t *result) {
-    for (int i = 0; i < R_SIZE; i++) {
+    for (int i = 0; i < BYTES_R_SIZE; i++) {
         result[i * 2] = bytes[i] >> 4;
         result[i * 2 + 1] = bytes[i] & 0xf;
     }
@@ -11,30 +11,31 @@ void split_into_half_bytes_sponge(const uint8_t *bytes, uint8_t *result) {
 
 typedef struct sponge_context {
     half_bytes_sponge sponge;
-    uint8_t current_block[R_SIZE*2];
+    uint8_t current_block[R_SIZE];
     half_bytes_vector result;
 } sponge_context;
 
 
 sponge_context init_sponge_context() {
     sponge_context context;
-    memset(context.sponge.state, 0x0, STATE_SIZE * 2);
+    memset(context.sponge.state, 0x0, STATE_SIZE);
     return context;
 }
 
 
 void new_padding_block(uint8_t *message, size_t length, uint8_t *destination) {
-    memset(destination, 0x0, R_SIZE * 2);
+    memset(destination, 0x0, R_SIZE);
     memcpy(destination, message, length);
 }
 
 
 int new_block(uint8_t *message, size_t max_length, size_t current_pos, uint8_t *destination) {
-    int diff = max_length - current_pos;
-    if (diff <= 0) {
-        return 0;
+    if (current_pos >= max_length) {
+        return  0;
     }
-    if (diff >= R_SIZE) {
+
+    size_t diff = max_length - current_pos;
+    if (diff >= BYTES_R_SIZE) {
         split_into_half_bytes_sponge(message + current_pos, destination);
     } else {
         new_padding_block(message + current_pos, diff, destination);
@@ -48,10 +49,10 @@ void sponge_hash(uint8_t *message, size_t length, uint8_t *result) {
     size_t current_length = 0;
     while (new_block(message, length, current_length, context.current_block)) {
         absorbing(&context.sponge, context.current_block);
-        current_length += R_SIZE;
+        current_length += BYTES_R_SIZE;
     }
     for (int i = 0; i < STATE_SIZE / R_SIZE; i++) {
-        squeezing(&context.sponge, context.result + i * R_SIZE * 2);
+        squeezing(&context.sponge, context.result + i * R_SIZE);
     }
     join_half_bytes(context.result, result);
 }
@@ -63,16 +64,16 @@ void sponge_MAC(uint8_t *message, size_t length, uint8_t *key, size_t key_length
     size_t current_length = 0;
     while (new_block(key, key_length, current_length, context.current_block)){
         absorbing(&context.sponge, context.current_block);
-        current_length += R_SIZE;
+        current_length += BYTES_R_SIZE;
     }
 
     current_length = 0;
     while (new_block(message, length, current_length, context.current_block)) {
         absorbing(&context.sponge, context.current_block);
-        current_length += R_SIZE;
+        current_length += BYTES_R_SIZE;
     }
     for (int i = 0; i < STATE_SIZE / R_SIZE; i++) {
-        squeezing(&context.sponge, context.result + i * R_SIZE * 2);
+        squeezing(&context.sponge, context.result + i * R_SIZE);
     }
     join_half_bytes(context.result, result);
 }
