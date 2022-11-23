@@ -30,7 +30,7 @@ void state_from_half_bytes(const uint8_t *half_bytes_state, uint64_t *state) {
 
 void sponge_function(uint8_t *state) {
     half_bytes_vector mora_constant;
-    for (int i = 0; i < STATE_BYTE_SIZE * 2; i++) {
+    for (int i = 0; i < 9; i++) {
         Ci(mora_constant, i);
         LPSX(state, mora_constant, state);
     }

@@ -10,10 +10,10 @@
 #include <cmath>
 
 
-#define STATE_BYTE_SIZE 8
 #define STATE_BIT_SIZE 64
 #define R_BIT_SIZE 32
-#define INTEGER_QUANTITY_BYTES_FOR_R_BLOCK (int) ceil(R_BIT_SIZE/8)
+#define INTEGER_QUANTITY_BYTES_FOR_R_BLOCK (int) ceil(R_BIT_SIZE / 8.0)
+#define STATE_BYTE_SIZE STATE_BIT_SIZE / 8
 
 typedef struct sponge_struct {
     uint64_t state;
