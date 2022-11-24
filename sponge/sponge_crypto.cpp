@@ -4,6 +4,7 @@
 typedef struct sponge_context {
     uint8_t *message;
     size_t message_length;
+    bool message_was_padded;
     size_t bytes_processed;
 
     uint64_t buffer;
@@ -28,50 +29,53 @@ uint64_t join_n_bytes(const uint8_t *bytes, size_t n) {
 // которого точно хватит для последних блоков размером R_BIT_SIZE.
 void fill_buffer(sponge_context *context) {
     size_t buffer_byte_length = 8;
+    size_t remaining_input_bytes_length = context->message_length - context->bytes_processed;
 
-    size_t count_of_remaining_input_bytes = context->message_length - context->bytes_processed;
-
-    if (count_of_remaining_input_bytes >= buffer_byte_length) {
+    if (remaining_input_bytes_length > buffer_byte_length) {
         context->buffer = join_n_bytes(context->message + context->bytes_processed, buffer_byte_length);
-
-        context->bytes_processed += buffer_byte_length;
         context->buffer_remaining_bit_length = buffer_byte_length * 8;
+        context->bytes_processed += buffer_byte_length;
     } else {
-        buffer_byte_length = (size_t) ceil((R_BIT_SIZE - context->buffer_remaining_bit_length) / 8.0);
+        size_t message_bit_length = context->message_length * 8;
+        size_t needed_count_of_r_blocks_in_message = message_bit_length / R_BIT_SIZE + 1;               // даже если сообщение полностью делится на блоки, то нужен паддинг, поэтому + 1
+        size_t padding_message_byte_length = ceil(double(needed_count_of_r_blocks_in_message) / 8);
+        size_t count_of_extra_zeros = padding_message_byte_length * 8 - needed_count_of_r_blocks_in_message * R_BIT_SIZE;
+        buffer_byte_length = padding_message_byte_length - context->bytes_processed;                    // буффер вмещающий полный остаток сообщения + необходимое количество байт для полного блока R (с возможным запасом, который обрежется)
 
-        uint8_t padding_message[buffer_byte_length + 1] = {0x80};
-        memcpy(padding_message, context->message + context->bytes_processed, count_of_remaining_input_bytes);
-        context->buffer = join_n_bytes(context->message + context->bytes_processed, buffer_byte_length);
+        // padding
+        uint8_t *padding_buffer = static_cast<uint8_t *>(malloc(buffer_byte_length));
+        memset(padding_buffer, 0x0, buffer_byte_length);
+        memcpy(padding_buffer, context->message + context->bytes_processed, remaining_input_bytes_length);
+        padding_buffer[context->message_length - context->bytes_processed] = 0x80;
 
-        context->buffer = context->buffer >> ((8 - buffer_byte_length) * 8);
+        context->buffer = join_n_bytes(padding_buffer, buffer_byte_length);
+        context->buffer >>= count_of_extra_zeros;                                                       // срезаем хвост из нулей
+        free(padding_buffer);
         context->bytes_processed = context->message_length;
-        context->buffer_remaining_bit_length = R_BIT_SIZE - context->buffer_remaining_bit_length;
+        context->buffer_remaining_bit_length = buffer_byte_length * 8 - count_of_extra_zeros;
+        context->message_was_padded = true;
     }
 }
 
 
 // заполняет context.r_block и выдает true. Если сообщение кончилось, то false
 bool get_r_block(sponge_context *context) {
-    if (context->message_length == context->bytes_processed && context->buffer_remaining_bit_length == 0) {
+    if (context->message_length == context->bytes_processed && context->buffer_remaining_bit_length == 0 && context->message_was_padded) {
         return false;
     }
+    size_t required_count_of_bits = R_BIT_SIZE;
+    context->r_block = 0;
 
-    size_t required_count_of_bits;
     if (context->buffer_remaining_bit_length < R_BIT_SIZE) {
-        context->r_block = context->buffer << context->buffer_remaining_bit_length;
-
         required_count_of_bits = R_BIT_SIZE - context->buffer_remaining_bit_length;
+        context->r_block = context->buffer << context->buffer_remaining_bit_length;     // если длины буффера не хватает, сохраняет его часть и заполняет новый
 
         fill_buffer(context);
-    } else {
-        context->r_block = 0;
-        required_count_of_bits = R_BIT_SIZE;
     }
-    size_t buffer_shift = context->buffer_remaining_bit_length - required_count_of_bits; // shift for bring R_BLOCK
-
-    context->r_block += context->buffer >> buffer_shift;
-    context->buffer = (context->buffer << (64 - buffer_shift)) >> (64 - buffer_shift); // deleting used part
+    context->r_block += (context->buffer >> (64 - required_count_of_bits));
+    context->buffer = (context->buffer << (64 - required_count_of_bits)) >> (64 - required_count_of_bits);
     context->buffer_remaining_bit_length -= required_count_of_bits;
+
     return true;
 }
 
@@ -87,6 +91,7 @@ sponge_context init_sponge_context(uint8_t *message, size_t message_length) {
     sponge_context context;
     context.message = message;
     context.message_length = message_length;
+    context.message_was_padded = false;
     context.bytes_processed = 0;
     context.buffer = 0;
     context.buffer_remaining_bit_length = 0;
@@ -111,7 +116,7 @@ void sponge_hash(uint8_t *message, size_t length, uint8_t *result) {
 
 
 void sponge_mac(uint8_t *message, size_t message_length, uint8_t *key, size_t key_length, uint8_t *result) {
-    uint8_t *key_with_message = malloc(message_length + key_length);
+    uint8_t *key_with_message = static_cast<uint8_t *>(malloc(message_length + key_length));
     memcpy(key_with_message, key, key_length);
     memcpy(key_with_message + key_length, message, message_length);
 
