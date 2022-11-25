@@ -7,7 +7,7 @@
 void print_8vector(uint8_t *vector) {
     int i;
     for (i = 0; i < 8; i++)
-        printf("%x", vector[i]);
+        printf("%02x ", vector[i]);
     std::cout << "\n";
 }
 
@@ -32,7 +32,11 @@ void sponge_hash_run() {
     bytes_vector result = {0};
 //    uint8_t message[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF};
     uint8_t message[] = {0x87, 0x12, 0xf3, 0x36, 0x52, 0x21, 0x35, 0x59};
+    printf("message = ");
+    print_8vector(message);
+
     sponge_hash(message, 8, result);
+    printf("hash    = ");
     print_8vector(result);
 }
 
