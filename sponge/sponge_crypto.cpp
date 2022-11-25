@@ -1,4 +1,3 @@
-#include <cstdio>
 #include "sponge_crypto.h"
 
 
@@ -39,7 +38,7 @@ void fill_buffer(sponge_context *context) {
     } else {
         size_t message_bit_length = context->message_length * 8;
         size_t needed_count_of_r_blocks_in_message = message_bit_length / R_BIT_SIZE + 1;               // даже если сообщение полностью делится на блоки, то нужен паддинг, поэтому + 1
-        size_t padding_message_byte_length = ceil(double(needed_count_of_r_blocks_in_message) / 8);
+        size_t padding_message_byte_length = ceil(double(needed_count_of_r_blocks_in_message) * R_BIT_SIZE / 8);
         size_t count_of_extra_zeros = padding_message_byte_length * 8 - needed_count_of_r_blocks_in_message * R_BIT_SIZE;
         buffer_byte_length = padding_message_byte_length - context->bytes_processed;                    // буффер вмещающий полный остаток сообщения + необходимое количество байт для полного блока R (с возможным запасом, который обрежется)
 
@@ -49,7 +48,7 @@ void fill_buffer(sponge_context *context) {
         memcpy(padding_buffer, context->message + context->bytes_processed, remaining_input_bytes_length);
         padding_buffer[context->message_length - context->bytes_processed] = 0x80;
 
-        context->buffer = join_n_bytes(padding_buffer, buffer_byte_length);
+        context->buffer = join_n_bytes(padding_buffer, buffer_byte_length) << (8 - buffer_byte_length) * 8;
         context->buffer >>= count_of_extra_zeros;                                                       // срезаем хвост из нулей
         free(padding_buffer);
         context->bytes_processed = context->message_length;
@@ -74,7 +73,7 @@ bool get_r_block(sponge_context *context) {
         fill_buffer(context);
     }
     context->r_block += (context->buffer >> (64 - required_count_of_bits));
-    context->buffer = (context->buffer << (64 - required_count_of_bits)) >> (64 - required_count_of_bits);
+    context->buffer = (context->buffer << (64 - required_count_of_bits));
     context->buffer_remaining_bit_length -= required_count_of_bits;
 
     return true;
@@ -111,7 +110,7 @@ void sponge_hash(uint8_t *message, size_t length, uint8_t *result) {
     }
 
     for(int i = 0; i < 8; i++) {
-        result[i] = (sponge.state & (0xFF << (8 - i - 1))) >> (8 - i - 1);
+        result[i] = (sponge.state & (0xFFULL << (8 - i - 1)*8)) >> (8 - i - 1) * 8;
     }
 }
 

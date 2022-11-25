@@ -36,6 +36,7 @@ void sponge_hash_run() {
     print_8vector(message);
 
     sponge_hash(message, 8, result);
+    printf("hash    = ");
     print_8vector(result);
 }
 
