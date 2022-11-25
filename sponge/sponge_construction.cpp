@@ -40,19 +40,27 @@ void sponge_function(uint8_t *state) {
 // E.g. |state| - 8 bit, |Sr| - 3 bit
 // init input = 0b00000101 -> 0b10100000 for correct xoring with Sr block in state
 void sponge_X(uint64_t *state, const uint64_t *input) {
+    printf("XOR:\n");
+    printf("xorable = %016x\n", &input);
     *state = *state ^ (*input << (STATE_BIT_SIZE - R_BIT_SIZE));
+    printf("state = %016x\n", *state);
 }
 
 
 void absorbing(sponge_struct *sponge, uint64_t *block) {
+    printf("\nstate = %016x\n", sponge->state);
+    printf("ABSORBING:\n");
+
     sponge_X(&sponge->state, block);
 
     half_bytes_vector state;
     state_to_half_bytes(&sponge->state, state);
 
+    printf("SPONGE FUNC:\n");
     sponge_function(state);
 
     state_from_half_bytes(state, &sponge->state);
+    printf("state = %016x\n", sponge->state);
 }
 
 

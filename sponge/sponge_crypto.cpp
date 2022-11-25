@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "sponge_crypto.h"
 
 
@@ -15,9 +16,15 @@ typedef struct sponge_context {
 
 
 uint64_t join_n_bytes(const uint8_t *bytes, size_t n) {
+    printf("Join N bytes:\n");
     uint64_t result = 0;
+    printf("sizeof(result) = %d\n", sizeof(result));
+    printf("result = %016x\n", result);
     for (size_t i = 0; i < n; i++) {
-        result = (result << 8) + bytes[i];
+        printf("bytes[%d] = %02x\n", i, bytes[i]);
+        result = ((uint64_t)(result) << 8) + bytes[i];
+        printf("sizeof(result << 8) = %d\n", sizeof(result << 8));
+        printf("result = %016x\n", result);
     }
     return result;
 }
@@ -31,7 +38,11 @@ void fill_buffer(sponge_context *context) {
     size_t buffer_byte_length = 8;
     size_t remaining_input_bytes_length = context->message_length - context->bytes_processed;
 
-    if (remaining_input_bytes_length > buffer_byte_length) {
+    printf("remaining_input_bytes_length = %d\n", remaining_input_bytes_length);
+    printf("buffer_byte_length = %d\n", buffer_byte_length);
+    printf("context->bytes_processed = %d\n", context->bytes_processed);
+
+    if (remaining_input_bytes_length >= buffer_byte_length) {
         context->buffer = join_n_bytes(context->message + context->bytes_processed, buffer_byte_length);
         context->buffer_remaining_bit_length = buffer_byte_length * 8;
         context->bytes_processed += buffer_byte_length;
@@ -70,7 +81,13 @@ bool get_r_block(sponge_context *context) {
         required_count_of_bits = R_BIT_SIZE - context->buffer_remaining_bit_length;
         context->r_block = context->buffer << context->buffer_remaining_bit_length;     // если длины буффера не хватает, сохраняет его часть и заполняет новый
 
+        printf("ABOBA\n");
+        printf("r_block = %016x\n", context->r_block);
+        printf("buffer = %016x\n", context->buffer);
+        printf("FILL_BUFFER\n");
         fill_buffer(context);
+        printf("buffer = %016x\n", context->buffer);
+        printf("ABOBA\n");
     }
     context->r_block += (context->buffer >> (64 - required_count_of_bits));
     context->buffer = (context->buffer << (64 - required_count_of_bits)) >> (64 - required_count_of_bits);
