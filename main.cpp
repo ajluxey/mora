@@ -8,7 +8,7 @@
 void print_8vector(uint8_t *vector) {
     int i;
     for (i = 0; i < 8; i++)
-        printf("%02x ", vector[i]);
+        printf("%02x", vector[i]);
     std::cout << "\n";
 }
 
@@ -101,11 +101,24 @@ void time_test(size_t exec_times) {
 }
 
 
+void get_hash_of_input(char *input_word) {
+    size_t length = strlen(input_word);
+    uint8_t *message = reinterpret_cast<uint8_t *>(&input_word[0]);
 
-int main() {
+    bytes_vector IV = {0};
+    bytes_vector result;
+    mora(IV, message, length, result);
+    print_8vector(result);
+
+    free(message);
+}
+
+
+int main(int argc, char *argv[]) {
 //    mora_run();
 //    sponge_hash_run();
 //    sponge_MAC_run();
-    time_test(1000000);
+//    time_test(1000000);
+    get_hash_of_input(argv[1]);
     return 0;
 }
