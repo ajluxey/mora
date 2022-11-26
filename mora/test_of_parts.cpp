@@ -102,5 +102,6 @@ void test_mora() {
     bytes_vector IV = {0};
     uint8_t a[] = {0x01, 0xd4, 0x44, 0x90, 0x7e, 0xfb, 0x8c, 0xf7};
     size_t size = sizeof (a) / sizeof (a[0]);
-    mora(IV, a, size);
+    bytes_vector  result = {0};
+    mora(IV, a, size, result);
 }
