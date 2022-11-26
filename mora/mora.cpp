@@ -76,7 +76,7 @@ void padding_short_block(uint8_t *short_message, size_t length, uint8_t *result)
 }
 
 
-void mora(uint8_t *IV, uint8_t *original_message, size_t current_length) {
+void mora(uint8_t *IV, uint8_t *original_message, size_t current_length, uint8_t *result) {
     // first part
     mora_context context = init_context();
     split_into_half_bytes(IV, context.current_hash);
@@ -110,5 +110,5 @@ void mora(uint8_t *IV, uint8_t *original_message, size_t current_length) {
 
     G(context.current_hash, context.sigma, context.N);
 
-    join_half_bytes(context.current_hash, IV);
+    join_half_bytes(context.current_hash, result);
 }
