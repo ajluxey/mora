@@ -95,9 +95,11 @@ void mora(uint8_t *IV, uint8_t *original_message, size_t current_length, uint8_t
         current_length -= BYTES_IN_BLOCK;
     }
     // last part
+    bytes_vector short_message;
     half_bytes_vector last_added_to_N;      // битовая длина оставшегося блока
     bit_length_of_short_message_in_half_bytes_vector(current_length, last_added_to_N);
-    padding_short_block(original_message, current_length, context.current_block);
+    padding_short_block(original_message, current_length, short_message);
+    split_into_half_bytes(short_message, context.current_block);
 
     G(context.current_hash, context.current_block, context.N);
     adding_in_Z64(context.N, last_added_to_N, context.N);           // N = длина сообщения в битах
