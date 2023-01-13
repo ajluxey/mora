@@ -110,22 +110,7 @@ void sponge_hash(uint8_t *message, size_t length, uint8_t *result) {
         absorbing(&sponge, &context.r_block);
     }
 
-//    // squezzing v1
-//    uint64_t num_result = 0;
-//    size_t squeezing_count = 64 / R_BIT_SIZE;
-//    size_t last_part_bit_length = 64 % R_BIT_SIZE;
-//    for (size_t i = 0; i < squeezing_count; i++) {
-//        num_result = (num_result << R_BIT_SIZE) + squeezing(&sponge);
-//    }
-//    if (last_part_bit_length > 0) {
-//        num_result = (num_result << last_part_bit_length) + (squeezing(&sponge) >> last_part_bit_length);
-//    }
-//    sponge.state = num_result;
-
-    // squeezing v2
-    squeezing(&sponge);
-
-    for(int i = 0; i < 8; i++) {
+    for(int i = 0; i < 4; i++) {
         result[i] = (sponge.state & (0xFFULL << (8 - i - 1)*8)) >> (8 - i - 1) * 8;
     }
 }
