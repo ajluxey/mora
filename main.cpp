@@ -4,6 +4,8 @@
 #include "mora/test_of_parts.h"
 #include "sponge/sponge_crypto.h"
 #include <ctime>
+#include "attacks/BP.h"
+
 
 void print_8vector(uint8_t *vector) {
     int i;
@@ -106,6 +108,7 @@ int main() {
 //    mora_run();
 //    sponge_hash_run();
 //    sponge_MAC_run();
-    time_test(1000000);
+//    time_test(1000000);
+    attack_BP();
     return 0;
 }
