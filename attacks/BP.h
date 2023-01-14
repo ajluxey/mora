@@ -9,6 +9,11 @@
 #include <ctime>
 #include <cmath>
 #include <random>
+#include <sstream>
+#include <thread>
+#include <algorithm>
+#include <unordered_map>
+
 #include "../sponge/sponge_crypto.h"
 
 int attack_BP();
