@@ -33,7 +33,7 @@ uint32_t mac_to_decimal(uint8_t *mac) {
 
 
 void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
-    char name[3];
+    char name[4];
     sprintf(name, "%03d", flow_index);
     printf("%s\n", name);
     FILE *file;
@@ -45,7 +45,7 @@ void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
     uint64_t left_border = 0;
     uint64_t mini_range = ceil(range / N);
 
-    std::mt19937 gen(flow_index);
+    std::mt19937_64 gen(flow_index);
     std::uniform_int_distribution<uint64_t> random_from_diapazon(0, mini_range);
 
     uint64_t uniq;
@@ -112,6 +112,54 @@ void check_collisions(uint32_t flow_index) {
 }
 
 
+void restore_message(uint8_t *message, int seed, uint32_t index, uint64_t range, uint64_t N) {
+    uint64_t left_border = 0;
+    uint64_t mini_range = ceil(range / N);
+
+    std::mt19937_64 gen(seed);
+    std::uniform_int_distribution<uint64_t> random_from_diapazon(0, mini_range);
+
+    uint64_t uniq;
+    uint8_t sponge_key[] = {0x41, 0x61, 0x42, 0x4f};
+
+    gen.discard(index);
+    left_border += mini_range * (index);
+    uniq = left_border + random_from_diapazon(gen) % (range % N);
+    decimal_to_array(uniq, message);
+    sponge_mac(message, 8, sponge_key, 4, message + 8);
+    memcpy(message, message, 8);
+    sponge_mac(message, 12, sponge_key, 4, message + 8);
+}
+
+
+void generate_two(uint8_t *message_1, uint8_t *message_2) {
+//    uint8_t message_1[] = {0x00, 0x03, 0xbd, 0xc0, 0x00, 0xef, 0x79, 0x8e, 0xb7, 0x3c, 0xea, 0x19};
+//    uint8_t message_2[] = {0x00, 0x1b, 0x42, 0x00, 0x06, 0xd0, 0x8c, 0x4b, 0x6b, 0x4b, 0x79, 0x14};
+    uint8_t constant_part[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09};
+
+    uint8_t test_1[22];
+    uint8_t test_2[22];
+    memcpy(test_1, message_1, 12);
+    memcpy(test_1 + 12, constant_part, 10);
+    memcpy(test_2, message_2, 12);
+    memcpy(test_2 + 12, constant_part, 10);
+
+    uint8_t sponge_key[] = {0x41, 0x61, 0x42, 0x4f};
+    uint8_t result_1[4] = {0};
+    uint8_t result_2[4] = {0};
+
+    sponge_mac(message_1, 22, sponge_key, 4, result_1);
+    sponge_mac(message_2, 22, sponge_key, 4, result_2);
+
+    for(int i = 0; i < 4; i++) {
+        if(result_1[i] != result_2[i]){
+            printf("gavno\n");
+        }
+    }
+    printf("check completed\n");
+}
+
+
 int attack_BP() {
     uint64_t N = 0xffffffff;
     uint64_t range = 0xffffffffffffffff;
@@ -131,7 +179,17 @@ int attack_BP() {
     // check collisions
 //    for(int i = 0; i < FLOWS_COUNT; i++) {
 //    }
-    check_collisions(65);
+
+    // check attack
+//    uint8_t message_1[12] = {0};
+//    uint8_t message_2[12] = {0};
+//    restore_message(message_1, 0, 142419, range, n_for_each_flow);
+//    restore_message(message_2, 0, 302124, range, n_for_each_flow);
+//
+//    print_vector_attack(message_1);
+//    print_vector_attack(message_2);
+//
+//    generate_two(message_1, message_2);
     return 0;
 }
 
