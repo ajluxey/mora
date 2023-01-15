@@ -36,8 +36,9 @@ void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
     char name[4];
     sprintf(name, "%03d", flow_index);
     printf("%s\n", name);
-    FILE *file;
-    if ((file = fopen(name, "w")) == NULL) {
+
+    std::ofstream file(name);
+    if(!file.is_open()) {
         printf("Can't open file for flow %d\n", flow_index);
         return;
     }
@@ -50,29 +51,21 @@ void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
 
     uint64_t uniq;
     uint8_t sponge_key[] = {0x41, 0x61, 0x42, 0x4f};
-    uint8_t sponge_message[8] = {0};
     uint8_t sponge_message_with_mac[12] = {0};
     uint8_t potential_collision[4] = {0};
 
-    uint64_t i = 0;
-    for(i; i < N; i++) {
+    for(uint64_t i = 0; i < N; i++) {
+        if(i == 1) break;
         uniq = left_border + random_from_diapazon(gen) % (range % N);
 
-        decimal_to_array(uniq, sponge_message);
-        sponge_mac(sponge_message, 8, sponge_key, 4, sponge_message_with_mac + 8);
-        memcpy(sponge_message_with_mac, sponge_message, 8);
+        decimal_to_array(uniq, sponge_message_with_mac);
+        sponge_mac(sponge_message_with_mac, 8, sponge_key, 4, sponge_message_with_mac + 8);
         sponge_mac(sponge_message_with_mac, 12, sponge_key, 4, potential_collision);
 
-        for(int j = 0; j < 4; j++){
-//            printf("%c", potential_collision[j]);
-            fputc(potential_collision[j], file);
-        }
-//        printf("\n");
-        fputs("\n", file);
+        file.write((char*)potential_collision, 4);
 
         left_border += mini_range;
     }
-    fclose(file);
 }
 
 
@@ -168,9 +161,8 @@ int attack_BP() {
     uint64_t n_for_each_flow = N / FLOWS_COUNT;
 
     std::vector<std::thread> threads;
-    for(int i = 0; i < FLOWS_COUNT; i++) {
+    for(int i = 0; i < 1; i++) {//FLOWS_COUNT; i++) {
         threads.push_back(std::thread(random_N_from_range, range, n_for_each_flow, i));
-//        random_N_from_range(range, n_for_each_flow, i);
     }
     for(auto &th : threads) {
         th.join();
