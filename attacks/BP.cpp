@@ -37,11 +37,11 @@ void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
     sprintf(name, "%03d", flow_index);
     printf("%s\n", name);
 
-    std::ofstream file(name);
-    if(!file.is_open()) {
-        printf("Can't open file for flow %d\n", flow_index);
-        return;
-    }
+//    std::ofstream file(name);
+//    if(!file.is_open()) {
+//        printf("Can't open file for flow %d\n", flow_index);
+//        return;
+//    }
 
     uint64_t left_border = 0;
     uint64_t mini_range = ceil(range / N);
@@ -55,14 +55,20 @@ void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
     uint8_t potential_collision[4] = {0};
 
     for(uint64_t i = 0; i < N; i++) {
-        if(i == 1) break;
+        printf("\n%d\n", flow_index);
         uniq = left_border + random_from_diapazon(gen) % (range % N);
 
         decimal_to_array(uniq, sponge_message_with_mac);
         sponge_mac(sponge_message_with_mac, 8, sponge_key, 4, sponge_message_with_mac + 8);
+        print_vector_attack(sponge_message_with_mac);
         sponge_mac(sponge_message_with_mac, 12, sponge_key, 4, potential_collision);
+        for(int j = 0; j < 4; j++) {
+            printf("%02x", potential_collision[j]);
+        }
+        printf("\n");
+        if(i >= 5) break;
 
-        file.write((char*)potential_collision, 4);
+//        file.write((char*)potential_collision, 4);
 
         left_border += mini_range;
     }
@@ -72,7 +78,6 @@ void random_N_from_range(uint64_t range, uint64_t N, int flow_index) {
 void check_collisions(uint32_t flow_index) {
     char name[4];
     sprintf(name, "%03d", flow_index);
-
 
     std::ifstream file(name);
     if(!file.is_open()) {
@@ -125,9 +130,7 @@ void restore_message(uint8_t *message, int seed, uint32_t index, uint64_t range,
 }
 
 
-void generate_two(uint8_t *message_1, uint8_t *message_2) {
-//    uint8_t message_1[] = {0x00, 0x03, 0xbd, 0xc0, 0x00, 0xef, 0x79, 0x8e, 0xb7, 0x3c, 0xea, 0x19};
-//    uint8_t message_2[] = {0x00, 0x1b, 0x42, 0x00, 0x06, 0xd0, 0x8c, 0x4b, 0x6b, 0x4b, 0x79, 0x14};
+void generate_two_and_check(uint8_t *message_1, uint8_t *message_2) {
     uint8_t constant_part[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09};
 
     uint8_t test_1[22];
@@ -153,35 +156,73 @@ void generate_two(uint8_t *message_1, uint8_t *message_2) {
 }
 
 
+bool corrected_restore(uint8_t *restored_message, uint8_t *mac) {
+    uint8_t result[4] = {0};
+    uint8_t key[4] = {0x41, 0x61, 0x42, 0x4f};
+    sponge_mac(restored_message, 12, key, 4, result);
+    printf("file_mac: ");
+    for(int i = 0; i < 4; i++) {
+        printf("%02x", mac[i]);
+    }
+    printf("\nresult_mac: ");
+    for(int i = 0; i < 4; i++) {
+        printf("%02x", result[i]);
+    }
+    printf("\n");
+
+    for(int i = 0; i < 4; i++) {
+        if (mac[i] != result[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 int attack_BP() {
     uint64_t N = 0xffffffff;
     uint64_t range = 0xffffffffffffffff;
 
-    // generate mac as: mes -> mac_, mes||mac -> mac
+//    // generate mac as: mes -> mac_, mes||mac -> mac
     uint64_t n_for_each_flow = N / FLOWS_COUNT;
-
-    std::vector<std::thread> threads;
-    for(int i = 0; i < 1; i++) {//FLOWS_COUNT; i++) {
-        threads.push_back(std::thread(random_N_from_range, range, n_for_each_flow, i));
-    }
-    for(auto &th : threads) {
-        th.join();
-    }
+    random_N_from_range(range, n_for_each_flow, 0);
+//
+//    std::vector<std::thread> threads;
+//    for(int i = 0; i < 1; i++) {//FLOWS_COUNT; i++) {
+//        threads.push_back(std::thread(random_N_from_range, range, n_for_each_flow, i));
+//    }
+//    for(auto &th : threads) {
+//        th.join();
+//    }
 
     // check collisions
 //    for(int i = 0; i < FLOWS_COUNT; i++) {
 //    }
 
     // check attack
-//    uint8_t message_1[12] = {0};
-//    uint8_t message_2[12] = {0};
-//    restore_message(message_1, 0, 142419, range, n_for_each_flow);
-//    restore_message(message_2, 0, 302124, range, n_for_each_flow);
-//
-//    print_vector_attack(message_1);
-//    print_vector_attack(message_2);
-//
-//    generate_two(message_1, message_2);
+    uint64_t index_1 = 0;
+    uint64_t index_2 = 0;
+    uint8_t message_1[12] = {0};
+    uint8_t message_2[12] = {0};
+    restore_message(message_1, 0, index_1, range, n_for_each_flow);
+    restore_message(message_2, 0, index_2, range, n_for_each_flow);
+
+    uint8_t mac_1[4];
+    uint8_t mac_2[4];
+    std::ifstream file("000");
+    file.ignore(index_1 * 4);
+    file.read(reinterpret_cast<char *>(mac_1), 4);
+    file.peek();
+    file.ignore((index_2 - index_1 + 1)*4);
+    file.read(reinterpret_cast<char *>(mac_2), 4);
+
+    corrected_restore(message_1, mac_1);
+    corrected_restore(message_2, mac_2);
+
+    print_vector_attack(message_1);
+    print_vector_attack(message_2);
+
+//    generate_two_and_check(message_1, message_2);
     return 0;
 }
 
